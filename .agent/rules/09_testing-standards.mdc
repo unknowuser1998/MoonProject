@@ -1,0 +1,161 @@
+---
+description: "Quy tắc testing cho MoonProject: unit test, integration test, mock patterns."
+globs: "Assets/Tests/**/*.cs,Assets/Scripts/**/*Test*.cs"
+alwaysApply: false
+---
+
+# Testing Standards - MoonProject
+
+## 1. Nguyên tắc
+
+- Test **pure logic**, không test MonoBehaviour trực tiếp
+- Extract logic ra pure C# class → test class đó (xem `extract_pure_logic.md`)
+- Mock dependencies qua interface
+- Test phải chạy nhanh (< 1s per test), không cần Unity Play mode
+
+## 2. Cấu trúc Test
+
+```
+Assets/
+├── Tests/
+│   ├── EditMode/
+│   │   ├── DreamyHarvest.Tests.EditMode.asmdef
+│   │   ├── Gameplay/
+│   │   │   ├── FarmLogicTests.cs
+│   │   │   ├── AnimalLogicTests.cs
+│   │   │   └── EconomyTests.cs
+│   │   ├── Data/
+│   │   │   ├── DataMigrationTests.cs
+│   │   │   └── SerializationTests.cs
+│   │   └── Mocks/
+│   │       ├── MockConfigProvider.cs
+│   │       └── MockDataProvider.cs
+│   └── PlayMode/
+│       ├── DreamyHarvest.Tests.PlayMode.asmdef
+│       └── Integration/
+│           ├── ManagerContainerTests.cs
+│           └── SaveLoadTests.cs
+```
+
+## 3. Naming Convention
+
+```csharp
+[Test]
+public void {Method}_{Scenario}_{ExpectedResult}()
+
+// Ví dụ:
+public void TryPlant_WhenNotEnoughCoins_ReturnsNotEnoughCoins()
+public void CanHarvest_WhenTimeElapsed_ReturnsTrue()
+public void AddItem_WhenItemExists_IncreasesCount()
+```
+
+## 4. Mock Patterns
+
+### Mock cho services hiện tại
+```csharp
+public interface ITimeProvider
+{
+    long GetCurrentTimestamp();
+}
+
+public class MockTimeProvider : ITimeProvider
+{
+    public long MockTime { get; set; }
+    public long GetCurrentTimestamp() => MockTime;
+}
+```
+
+### Sử dụng trong test
+```csharp
+[TestFixture]
+public class FarmLogicTests
+{
+    private FarmLogic _logic;
+    private FarmState _state;
+    private MockTimeProvider _time;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _state = new FarmState();
+        _time = new MockTimeProvider { MockTime = 1000 };
+        var config = CreateTestPlantConfig("wheat", cost: 10, harvestTime: 300);
+        _logic = new FarmLogic(_state, config, _time);
+    }
+
+    [Test]
+    public void TryPlant_WhenHasEnoughCoins_PlantSuccessfully()
+    {
+        var result = _logic.TryPlant("wheat", currentCoins: 100);
+
+        Assert.AreEqual(PlantResult.Success, result);
+        Assert.AreEqual("wheat", _state.plantId);
+        Assert.AreEqual(1000, _state.timeStampPlant);
+    }
+
+    [Test]
+    public void CanHarvest_BeforeHarvestTime_ReturnsFalse()
+    {
+        _logic.TryPlant("wheat", currentCoins: 100);
+        _time.MockTime = 1200; // 200s < 300s harvestTime
+
+        Assert.IsFalse(_logic.CanHarvest());
+    }
+
+    [Test]
+    public void CanHarvest_AfterHarvestTime_ReturnsTrue()
+    {
+        _logic.TryPlant("wheat", currentCoins: 100);
+        _time.MockTime = 1500; // 500s > 300s harvestTime
+
+        Assert.IsTrue(_logic.CanHarvest());
+    }
+}
+```
+
+## 5. Những gì BẮT BUỘC test
+
+| Module | Cần test | Lý do |
+|--------|----------|-------|
+| Economy (Coin/Gem/Energy) | Add/Remove/Check balance | Ảnh hưởng IAP, player progression |
+| Farm/Animal growth timing | Plant → Grow → Harvest cycle | Core gameplay |
+| Order matching | Order requirements vs inventory | Player rewards |
+| Data migration | Old format → new format | Mất data = mất player |
+| Leaderboard scoring | Score calculation, ranking | Competition fairness |
+
+## 6. Những gì KHÔNG CẦN test
+
+- UI display logic (set text, set sprite)
+- MonoBehaviour lifecycle glue code
+- Inspector-configured ScriptableObject
+- Third-party SDK wrappers
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+[Test]
+public void RemoveItem_WhenExactAmount_RemovesFromInventory()
+{
+    var inventory = new List<CountObject> { new CountObject("wheat", 5) };
+    var logic = new InventoryLogic(inventory);
+
+    bool result = logic.RemoveItem("wheat", 5);
+
+    Assert.IsTrue(result);
+    Assert.AreEqual(0, logic.GetItemCount("wheat"));
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+[Test]
+public void TestFarm() // Tên không mô tả
+{
+    var farm = new GameObject().AddComponent<Farm>(); // Test MonoBehaviour trực tiếp
+    farm.TryPlanting("wheat"); // Phụ thuộc Unity runtime
+    Assert.IsTrue(farm.CanHarvest); // Flaky - phụ thuộc coroutine
+}
+```

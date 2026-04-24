@@ -1,0 +1,61 @@
+---
+description: "Luôn áp dụng: ưu tiên làm rõ yêu cầu mơ hồ (Socratic, đọc repo trước); nếu đã đủ neo cụ thể thì code ngay."
+globs: ""
+alwaysApply: true
+---
+
+# Làm rõ yêu cầu (Deep Interview – phiên bản Cursor)
+
+Rule này chuyển tinh thần [deep-interview](https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/deep-interview/SKILL.md) (Socratic + brownfield context) sang workflow **Cursor + Unity brownfield** của MoonProject. Không dùng pipeline OMC (`.omc/`, `Skill()`, autopilot).
+
+**Luôn bật:** Mỗi lượt agent **tự phân loại** yêu cầu trước khi viết code nhiều.
+
+## Triage (bắt buộc suy nghĩ nhanh)
+
+1. **Đủ neo để làm ngay** — có path/symbol rõ, hoặc một thay đổi nhỏ đã mô tả đủ hành vi + file chạm tới → **thực hiện trực tiếp**, không mở vòng phỏng vấn.
+2. **Mơ hồ hoặc rộng** — thiếu mục tiêu, ràng buộc, tiêu chí xong, hoặc không biết gắn vào manager/UI/save nào → **áp dụng chính sách** bên dưới (ưu tiên đọc repo, tối đa một câu hỏi mỗi lượt khi đang làm rõ).
+
+## Dấu hiệu thường cần làm rõ (không đủ thì đừng đoán mò code lớn)
+
+- Ý tưởng chung: "làm cho hay hơn", "refactor UI", "tối ưu", "sửa bug lag" **mà không** có scene/panel/manager, hành vi mong đợi, hoặc tiêu chí xong.
+- User nói: "phỏng vấn kỹ", "đừng giả định", "làm rõ trước", "deep interview".
+- Thay đổi chạm nhiều lớp: UI + save + message bus + config.
+
+## Khi không cần vòng làm rõ (đã nói ở Triage)
+
+- Đã có đường dẫn file, tên class/method, hoặc checklist chấp nhận rõ ràng.
+- Một thay đổi nhỏ, một chỗ, đã đủ ngữ cảnh.
+
+## Chính sách thực thi
+
+1. **Đọc repo trước, hỏi user sau**  
+   Với câu hỏi kiểu "đang dùng auth/UI/save thế nào" → dùng công cụ tìm/đọc trong workspace. Chỉ hỏi user phần **quyết định sản phẩm** hoặc **xác nhận** sau khi đã trích dẫn bằng chứng (path, symbol, pattern).
+
+2. **Một câu hỏi mỗi lượt** (khi đang làm rõ scope)  
+   Tránh "và platform? và performance? và deadline?" trong một tin — câu trả lời nông làm sai kế hoạch.
+
+3. **Nhắm vào khoảng trống lớn nhất**  
+   Mỗi lượt nêu rõ: đang thiếu rõ nhất **mục tiêu**, **ràng buộc**, **tiêu chí xong**, hay **chỗ gắn vào codebase** — rồi hỏi đúng một mục đó.
+
+4. **Brownfield MoonProject**  
+   Khi liên quan kiến trúc hiện có, neo vào các khối trong `00_project-overview.mdc`: `ManagerContainer` / `GetManager<T>`, `MessageManager` + `TeeMessageType`, `DataController` / wrapper, `BasePopup<T>`, `MapManager` / grid objects — và **trích dẫn file** khi hỏi "mở rộng hay tách luồng".
+
+5. **Cảnh báo thoát sớm**  
+   Nếu user bảo "làm luôn" khi scope vẫn mơ hồ: tóm tắt rủi ro (làm sai feature, double singleton, phá save) trong vài câu, rồi tiếp tục hoặc đề xuất thu hẹp scope một cách cụ thể.
+
+6. **Sau khi đủ rõ**  
+   Viết spec ngắn (trong chat hoặc comment đầu task): Goal, Constraints, Non-goals, Acceptance criteria có thể kiểm tra. Với refactor lớn, cân nhắc Plan mode theo `03_unity-architecture.mdc` / quy tắc liên quan.
+
+## Gợi ý câu hỏi theo chiều (không bắt buộc hết một lúc)
+
+| Thiếu gì | Hướng câu hỏi |
+|-----------|----------------|
+| Mục tiêu | "Khi xong, người chơi thấy điều gì thay đổi cụ thể?" |
+| Ràng buộc | "Offline? build target? giới hạn GC/Update? tương thích save cũ?" |
+| Xong chưa | "Làm sao biết đúng: repro steps, số FPS, hoặc checklist UI?" |
+| Neo codebase | "Tìm thấy X trong `path` — feature này mở rộng đây hay tách module?" |
+
+## Không làm trong rule này
+
+- Không giả là có scoring JSON / ngưỡng ambiguity cố định như bản gốc OMC.
+- Không bắt buộc tạo file spec trên disk trừ khi user yêu cầu.

@@ -1,0 +1,48 @@
+---
+description: "Quy tắc Fail-Fast: không dùng fallback logic trong game code."
+globs: "Assets/Scripts/Gameplay/**/*.cs,Assets/Scripts/Data/**/*.cs"
+alwaysApply: true
+---
+
+# No-Fallback Game Logic - Fail Fast
+
+## Nguyên tắc cốt lõi
+> Game logic PHẢI fail nhanh và rõ ràng khi gặp dữ liệu sai.
+> KHÔNG BAO GIỜ tự ý tạo giá trị mặc định để "chạy tiếp" - điều này che giấu bug.
+
+## CẤM trong game logic
+
+### 1. Default value thay thế
+```csharp
+// SAI - che giấu config thiếu
+var data = config.GetData(id) ?? new Data();
+
+// ĐÚNG - fail rõ ràng
+var data = config.GetData(id);
+if (data == null)
+{
+    Debug.LogError($"Data not found for id={id}");
+    return;
+}
+```
+
+### 2. Silent catch
+```csharp
+// SAI - nuốt lỗi
+try { ProcessData(); }
+catch { }
+
+// ĐÚNG
+try { ProcessData(); }
+catch (Exception e)
+{
+    Debug.LogError($"Failed to process: {e.Message}");
+    throw;
+}
+```
+
+## Checklist khi review code
+- [ ] Có `??` hoặc `?.` nào trong game logic không? → Thay bằng explicit check
+- [ ] Có `try-catch` nào nuốt exception không? → Log rõ ràng
+- [ ] Có default value nào che giấu missing config không?
+- [ ] Có method nào return silently khi precondition sai không? → Thêm Debug.LogError

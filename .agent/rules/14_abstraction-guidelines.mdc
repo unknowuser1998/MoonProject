@@ -1,0 +1,80 @@
+---
+description: "Quy tắc khi nào nên tạo abstraction layer, interface, và design pattern ưu tiên."
+globs: "Assets/Scripts/**/*.cs"
+alwaysApply: false
+---
+
+# Abstraction Guidelines - MoonProject
+
+## 1. Khi nào NÊN tạo abstraction
+
+- Có 3+ class implement cùng pattern (Rule of Three)
+- Cần mock dependency cho unit test
+- Module cần swap implementation (ví dụ: ads provider, analytics)
+- Code đang dùng trực tiếp third-party API (Firebase, MAX SDK, AppsFlyer)
+
+## 2. Khi nào KHÔNG NÊN tạo abstraction
+
+- Chỉ có 1 implementation và không dự kiến thêm
+- Abstraction chỉ là wrapper 1:1 không thêm value
+- Code đang hoạt động tốt và không cần test
+- Deadline gấp — technical debt chấp nhận được
+
+## 3. Pattern ưu tiên (theo thứ tự)
+
+1. **Interface** → cho service abstraction (`IAdsService`, `IAnalyticsService`)
+2. **Abstract class** → cho shared behavior (`BasePopup<T>`, `BaseDataWrapper`)
+3. **Strategy pattern** → cho swappable algorithm
+4. **Facade** → cho simplify complex subsystem
+
+## 4. Checklist trước khi tạo abstraction
+
+- [ ] Có ít nhất 2 use case cụ thể? (hoặc chắc chắn sẽ có)
+- [ ] Interface có < 7 methods? (Interface Segregation Principle)
+- [ ] Naming rõ ràng, không quá generic? (`IRewardProvider` tốt, `IManager` xấu)
+- [ ] Không tạo abstraction chỉ để "clean code"?
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+// Cần swap ads provider → interface hợp lý
+namespace DreamyHarvest.Services
+{
+    public interface IAdsService
+    {
+        void ShowBanner();
+        void ShowInterstitial(System.Action onComplete, System.Action onFail);
+        void ShowRewarded(System.Action<bool> onResult);
+        bool IsRewardedReady { get; }
+    }
+
+    // Implementation cho AppLovin MAX
+    public class MaxAdsService : GameManager, IAdsService
+    {
+        public void ShowBanner() { /* MAX SDK call */ }
+        public void ShowInterstitial(System.Action onComplete, System.Action onFail) { /* ... */ }
+        public void ShowRewarded(System.Action<bool> onResult) { /* ... */ }
+        public bool IsRewardedReady => MaxSdk.IsRewardedAdReady(adUnitId);
+    }
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+// Wrapper 1:1, không thêm value nào
+public interface IDataController
+{
+    void SaveData(bool immediate);
+    void LoadData();
+    GameData CurrentGameData { get; }
+}
+
+// DataController đã là duy nhất, interface chỉ thêm file
+public class DataController : GameManager, IDataController
+{
+    // Mọi method chỉ forward 1:1 → vô nghĩa
+}
+```

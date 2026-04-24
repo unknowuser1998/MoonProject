@@ -1,0 +1,112 @@
+---
+description: "Quy tắc Git commit theo Conventional Commits, tiếng Việt."
+globs: ""
+alwaysApply: true
+---
+
+# Git Commit Standards - MoonProject
+
+## 1. Format
+
+```
+<type>(<scope>): <mô tả ngắn>
+
+<body - tùy chọn>
+
+<footer - tùy chọn>
+```
+
+## 2. Types
+
+| Type | Khi nào dùng | Ví dụ |
+|------|-------------|-------|
+| `feat` | Thêm feature mới | `feat(farm): thêm hệ thống tưới nước` |
+| `fix` | Sửa bug | `fix(animal): sửa lỗi animal không harvest được` |
+| `refactor` | Restructure code, không đổi behavior | `refactor(data): tách GameData thành nhiều file` |
+| `perf` | Tối ưu performance | `perf(ui): cache WaitForSeconds trong countdown` |
+| `style` | Format code, không đổi logic | `style(farm): thêm namespace DreamyHarvest.Gameplay` |
+| `test` | Thêm/sửa test | `test(economy): thêm unit test cho AddItem/RemoveItem` |
+| `docs` | Documentation | `docs: cập nhật README setup guide` |
+| `chore` | Maintenance, config | `chore: update Unity packages` |
+| `build` | Build system, CI | `build(android): cập nhật IL2CPP settings` |
+| `revert` | Revert commit trước | `revert: revert "feat(farm): thêm tưới nước"` |
+
+## 3. Scope (tùy chọn)
+
+Dùng tên module/folder:
+
+| Scope | Module |
+|-------|--------|
+| `farm` | Farm, Plant, Harvest |
+| `animal` | Animal system |
+| `tree` | Tree system |
+| `order` | Order board, Trade boat |
+| `ui` | UI chung |
+| `data` | DataController, GameData, Save/Load |
+| `config` | ConfigController, remote config |
+| `ads` | Ads system |
+| `iap` | In-app purchase |
+| `event` | Leaderboard, FarmPoints, EventPass |
+| `quest` | Quest, SideQuest, DailyQuest |
+| `tutorial` | Tutorial flow |
+| `analytics` | Firebase, GSM, AppsFlyer |
+| `account` | Login, social |
+
+## 4. Quy tắc
+
+- Mô tả bằng **tiếng Việt**, ngắn gọn (< 72 ký tự dòng đầu)
+- Dùng động từ ở đầu: "thêm", "sửa", "xóa", "cập nhật", "tối ưu"
+- KHÔNG dùng dấu chấm cuối dòng đầu
+- Body: giải thích WHY, không phải WHAT
+- Mỗi commit chỉ làm 1 việc
+
+## 5. Ví dụ tốt
+
+```
+feat(farm): thêm cơ chế boost tốc độ trồng bằng gem
+
+Cho phép player dùng gem để giảm 50% thời gian grow.
+Tích hợp với MessageManager qua TeeMessageType.OnFarmBoost.
+```
+
+```
+fix(iap): sửa lỗi không nhận reward sau mua StarterPack
+
+Root cause: OnCompletePurchase check sai packName.
+Thêm null check và log error khi pack không tìm thấy.
+
+Fixes #123
+```
+
+```
+refactor(singleton): chuyển NotiController từ Singleton sang GameManager
+
+Giảm coupling, dễ test hơn.
+Tất cả caller chuyển sang this.GetManager<NotiController>().
+```
+
+```
+perf(update): chuyển QuestElement.Update() sang event-driven
+
+QuestElement không cần poll mỗi frame.
+Subscribe MessageManager.OnDataChange thay thế.
+Giảm ~40 Update() calls per frame.
+```
+
+## 6. Ví dụ xấu
+
+```
+update code                          → Không rõ thay đổi gì
+fix bug                              → Bug nào?
+WIP                                  → Không commit WIP
+feat: thêm feature mới rất hay.      → Dấu chấm cuối, không có scope
+fix(farm,animal,tree): sửa nhiều thứ → Quá nhiều scope, commit nên tách
+```
+
+## 7. Checklist trước commit
+
+- [ ] Đã test thay đổi chạy đúng?
+- [ ] Commit message theo format `type(scope): mô tả`?
+- [ ] Chỉ commit files liên quan (không commit `.meta` thừa)?
+- [ ] Không commit `debug.log`, `*.tmp`, build artifacts?
+- [ ] Không commit secrets (API keys, tokens)?

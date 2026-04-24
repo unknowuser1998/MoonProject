@@ -1,0 +1,118 @@
+---
+description: "Quy tắc đặt tên (naming convention) cho MoonProject Unity project."
+globs: "Assets/Scripts/**/*.cs"
+alwaysApply: true
+---
+
+# Naming Convention - MoonProject
+
+## 1. Classes & Structs
+
+| Loại | Pattern | Ví dụ |
+|------|---------|-------|
+| MonoBehaviour | PascalCase + suffix mô tả | `FarmSlot`, `AnimalController`, `QuestPanel` |
+| ScriptableObject Manager | PascalCase + `Controller`/`Manager` | `DataController`, `AudioManager` |
+| Data Wrapper | `DataWrapper` + tên entity | `DataWrapperItem`, `DataWrapperPlant` |
+| Config Wrapper | `ConfigWrapper` + tên entity | `ConfigWrapperAnimal`, `ConfigWrapperLevel` |
+| UI Popup | PascalCase + `Popup`/`Panel`/`UI` | `CardCollectionPopup`, `ShopPanel`, `CraftingUI` |
+| Data Model | PascalCase + `State`/`Data` | `FarmState`, `LeaderboardData` |
+| Enum | PascalCase (singular) | `CardRarity`, `TeeMessageType` |
+
+## 2. Methods
+
+| Loại | Pattern | Ví dụ |
+|------|---------|-------|
+| Public method | PascalCase | `Initialize()`, `Show()`, `ForceComplete()` |
+| Private method | PascalCase | `UpdateUI()`, `HandleMessage()` |
+| Event handler | `OnClick` / `OnComplete` + action | `OnClickClose()`, `OnCompletePurchase()` |
+| Coroutine | `IE` prefix hoặc tên mô tả | `IECountDown()`, `ShowPopupWithDelay()` |
+| Bool getter | `Is`/`Has`/`Can` prefix | `IsReady`, `HasPlant`, `CanHarvest` |
+
+## 3. Fields & Properties
+
+| Loại | Pattern | Ví dụ |
+|------|---------|-------|
+| [SerializeField] private | camelCase | `txtTimer`, `btnClose`, `popup` |
+| Private field | camelCase hoặc `_` prefix | `_state`, `eventData`, `growCoroutine` |
+| Public property | PascalCase | `PlantId`, `CurrentGameData`, `Index` |
+| Constant | UPPER_SNAKE_CASE hoặc PascalCase | `ENERGY_ID`, `MaxRetryCount` |
+| Static readonly | PascalCase | `Wait1s`, `DefaultTimeout` |
+
+## 4. UI Component Prefix
+
+| Prefix | Component | Ví dụ |
+|--------|-----------|-------|
+| `txt` | TextMeshProUGUI | `txtLevel`, `txtCountDown` |
+| `btn` | Button | `btnClose`, `btnConfirm` |
+| `img` | Image | `imgAvatar`, `imgIcon` |
+| `go` | GameObject | `goRewardPanel`, `goLoading` |
+| `anim` | Animator | `animPopup`, `animCard` |
+| `cg` | CanvasGroup | `cgOverlay` |
+
+## 5. Folders & Files
+
+- File name = Class name (1:1)
+- Folder dùng PascalCase: `GridObjects`, `CardCollection`, `SideQuest`
+- Subfolder theo feature, không theo type
+
+## 6. Constants & IDs
+
+- Item IDs: format `"ss_XXX"` (đã có trong `Constants.ID`)
+- Scene names: `"MAP_{id}"`, `"LOADING"`, `"Splash"`
+- Message types: thêm vào `TeeMessageType` enum
+- PlayerPref keys: UPPER_SNAKE_CASE trong `PlayerPrefController`
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+namespace DreamyHarvest.UI
+{
+    public class DailyRewardPopup : BasePopup<DailyRewardPopup>
+    {
+        [SerializeField] private TextMeshProUGUI txtTitle;
+        [SerializeField] private Button btnClaim;
+        [SerializeField] private GameObject goRewardContainer;
+
+        private DailyRewardController _controller;
+        private bool _isClaimed;
+
+        public bool IsClaimed => _isClaimed;
+
+        public void Initialize(DailyRewardController controller)
+        {
+            _controller = controller;
+            UpdateUI();
+        }
+
+        private void OnClickClaim()
+        {
+            if (_isClaimed) return;
+            _controller.ClaimReward();
+            _isClaimed = true;
+        }
+    }
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+public class daily_reward_popup : BasePopup<daily_reward_popup> // snake_case class
+{
+    public TextMeshProUGUI Title; // Public, PascalCase cho field
+    public Button claimButton; // Không có prefix btn
+    [SerializeField] private GameObject reward_container; // snake_case field
+
+    DailyRewardController m_controller; // m_ prefix
+    bool claimed; // Thiếu access modifier
+
+    public bool getClaimed() { return claimed; } // Method thay vì property, camelCase
+
+    void click_claim() // snake_case method
+    {
+        m_controller.ClaimReward();
+    }
+}
+```

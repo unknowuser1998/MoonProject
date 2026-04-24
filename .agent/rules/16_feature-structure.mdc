@@ -1,0 +1,59 @@
+---
+description: Tự động đọc và cập nhật feature structure files khi thay đổi code liên quan
+globs: ["Assets/Scripts/Gameplay/**/*.cs", "Assets/Scripts/General/**/*.cs"]
+alwaysApply: false
+---
+
+# Feature Structure Files
+
+## Mục đích
+Feature `.struc.md` files trong `.agent/features/` cung cấp context map nhanh cho AI, giúp giảm thời gian discovery khi làm việc với một feature.
+
+## Quy tắc BẮT BUỘC
+
+### 1. Đọc trước khi sửa
+Trước khi sửa code thuộc bất kỳ feature nào, **PHẢI đọc file `.struc.md` tương ứng** nếu tồn tại trong thư mục `.agent/features/`.
+
+### 2. Cập nhật sau khi sửa
+Sau khi hoàn thành thay đổi code, **PHẢI cập nhật** file `.struc.md` nếu thay đổi thuộc một trong các mục:
+- Thêm/xóa/đổi tên file liên quan → cập nhật bảng **Files**
+- Thêm/xóa dependency → cập nhật **Dependencies**
+- Thay đổi flow chính → cập nhật **Data Flow**
+
+### 3. Tạo mới khi cần
+Tạo file `.struc.md` mới khi:
+- Feature có cấu trúc nhiều thành phần (UI + Logic + Data + Config)
+- Feature có data flow phức tạp
+
+## Template
+```markdown
+# [Feature Name]
+> Auto-generated: YYYY-MM-DD | Status: verified/draft
+
+## Overview
+Mô tả ngắn 1-2 câu.
+
+## Files
+| Role | Path | Size |
+|------|------|------|
+| ... | `Assets/Scripts/...` | ... |
+
+## Key Classes
+- `ClassName : BaseClass` — Mô tả ngắn
+
+## Dependencies
+\```
+ClassName
+├── Dependency1 — Mục đích
+└── ...
+\```
+
+## Data Flow
+\```
+[Flow Name]
+Step1 → Step2 → Step3
+\```
+
+## Known Issues / Caveats
+- Issue 1
+```

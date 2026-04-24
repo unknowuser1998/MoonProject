@@ -1,0 +1,46 @@
+---
+description: "Tổng quan dự án MoonProject - file index cho toàn bộ rules."
+globs: ""
+alwaysApply: true
+---
+
+# MoonProject - Tổng quan dự án
+
+## Thông tin chung (Vui lòng điền thêm)
+- **Engine**: Unity 2022.3+
+- **Thể loại**: [TBD]
+- **Platform**: Android + iOS + PC
+- **Ngôn ngữ**: C# (.NET Standard 2.1)
+
+## Kiến trúc hiện tại
+[TBD: Mô tả kiến trúc chính ở đây. Ví dụ: Zenject, ECS, Singleton patterns...]
+
+## Cấu trúc thư mục Scripts/
+[TBD: Mô tả cấu trúc thư mục code chính]
+
+## Truy cập manager/service
+[TBD: Mô tả cách lấy instance của manager. Ví dụ: Zenject Inject, Singleton.Instance...]
+
+## Third-party SDKs
+[TBD: Liệt kê các SDKs như Firebase, DOTween, Addressables...]
+
+## Index các rule files
+
+| # | File | Nội dung |
+|---|------|---------|
+| 01 | `01_code-style.mdc` | Code formatting, comments, null safety |
+| 02 | `02_naming-convention.mdc` | Class, method, field, UI prefix naming |
+| 03 | `03_unity-architecture.mdc` | Kiến trúc Unity chung |
+| 04 | `04_performance-mobile.mdc` | Update loop, GC, coroutine, UI perf |
+| 05 | `05_ui-patterns.mdc` | UI Architecture |
+| 06 | `06_data-serialization.mdc` | Save/load, JSON, PlayerPrefs, cloud sync |
+| 07 | `07_no-fallback-game-logic.mdc` | Fail-fast, không dùng fallback trong game logic |
+| 08 | `08_asset-standards.mdc` | Texture, audio, prefab import settings |
+| 09 | `09_testing-standards.mdc` | Unit test, mock, pure logic testing |
+| 10 | `10_build-standards.mdc` | CI, define symbols, build pipeline |
+| 11 | `11_debug-standards.mdc` | Structured logging, debug tools |
+| 12 | `12_git-commit-standards.mdc` | Conventional Commits |
+| 13 | `13_requirements-clarity.mdc` | Làm rõ yêu cầu trước khi code |
+| 14 | `14_abstraction-guidelines.mdc` | Quy tắc tạo abstraction |
+| 15 | `15_mcp-workflow.mdc` | AI workflow rules |
+| 16 | `16_feature-structure.mdc` | Quy tắc tạo file .struc.md |

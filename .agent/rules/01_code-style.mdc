@@ -1,0 +1,119 @@
+---
+description: "Quy tắc code style cho Unity project MoonProject. Áp dụng cho mọi file C# trong Assets/Scripts/."
+globs: "Assets/Scripts/**/*.cs,Assets/Tests/**/*.cs,Assets/Editor/**/*.cs"
+alwaysApply: true
+---
+
+# Code Style - MoonProject Unity Project
+
+## 1. Định dạng cơ bản
+
+- **Brace style**: Allman (mở ngoặc nhọn trên dòng mới)
+- **Indentation**: 4 spaces (không dùng tab)
+- **Encoding**: UTF-8 with BOM
+- **Line ending**: CRLF (Windows)
+- **Max line length**: 120 ký tự (soft limit)
+
+## 2. Access Modifiers
+
+- Luôn dùng `[SerializeField] private` cho Inspector fields thay vì `public`
+- Không bỏ qua access modifier (luôn ghi rõ `private`, `public`, `protected`)
+- Dùng `[ReadOnly]` (Odin) cho debug fields trên Inspector
+
+## 3. Null Safety
+
+- Dùng guard clause cho null check: `if (data == null) return;`
+- Dùng null-conditional operator khi phù hợp: `manager?.SendMessage(...)`
+- Không dùng `try-catch` để thay thế null check
+
+## 4. Comments
+
+- Dùng `/// <summary>` cho public methods và class
+- Comments nội dung logic phức tạp bằng tiếng Việt hoặc tiếng Anh (nhất quán trong 1 file)
+- KHÔNG comment code thừa - xóa luôn
+- KHÔNG dùng comment để giải thích code hiển nhiên
+
+## 5. String Handling
+
+- Dùng `Constants` class cho hardcoded IDs và keys
+- Dùng `GameUtils.GetTranslateText(key)` cho user-facing text
+- Dùng string interpolation `$"{variable}"` thay vì concatenation `"text" + variable`
+
+## 6. Using Directives
+
+- Sắp xếp `using` theo thứ tự: System → UnityEngine → Third-party → Project
+- Xóa `using` không dùng
+
+## 7. File Organization
+
+- Mỗi file chỉ chứa MỘT class/struct/enum chính
+- File name phải trùng với class name
+- Ngoại lệ: nested class nhỏ hoặc data class liên quan chặt có thể cùng file
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+using System;
+using UnityEngine;
+using TMPro;
+
+namespace DreamyHarvest.Gameplay
+{
+    /// <summary>
+    /// Quản lý trạng thái và hiển thị của một ô trồng trọt.
+    /// </summary>
+    public class FarmSlot : MonoBehaviour
+    {
+        [SerializeField] private TextMeshProUGUI txtTimer;
+        [SerializeField] private GameObject harvestIcon;
+
+        private FarmState _state;
+
+        public bool CanHarvest => _state?.IsReady ?? false;
+
+        public void Initialize(FarmState state)
+        {
+            if (state == null) return;
+            _state = state;
+            UpdateUI();
+        }
+
+        private void UpdateUI()
+        {
+            txtTimer.text = $"{_state.RemainingTime:F0}s";
+            harvestIcon.SetActive(CanHarvest);
+        }
+    }
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+using UnityEngine;
+using System.Collections;
+using System; // Using không theo thứ tự
+
+// Không có namespace
+public class farmSlot : MonoBehaviour // Class name không PascalCase
+{
+    public TextMeshProUGUI txtTimer; // Public field thay vì [SerializeField] private
+    public GameObject harvestIcon;
+
+    FarmState state; // Thiếu access modifier
+
+    // Comment thừa: hàm khởi tạo
+    public void Initialize(FarmState state) {  // Brace cùng dòng (K&R style)
+        try { // Dùng try-catch thay vì null check
+            this.state = state;
+            txtTimer.text = "" + state.RemainingTime + "s"; // String concatenation
+            harvestIcon.SetActive(state.IsReady);
+        }
+        catch (Exception e) {
+            Debug.Log(e); // Nuốt exception
+        }
+    }
+}
+```

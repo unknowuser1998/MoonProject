@@ -1,0 +1,24 @@
+---
+description: "Quy tắc về data serialization và save/load cho MoonProject."
+globs: "Assets/Scripts/Data/**/*.cs,Assets/Scripts/General/**/*.cs"
+alwaysApply: false
+---
+
+# Data & Serialization Rules - MoonProject
+
+## 1. Save/Load Architecture
+- [TBD: Cấu trúc Save/Load của dự án, các service phụ trách]
+
+## 2. Serialization Format
+- Sử dụng format JSON (JsonUtility/Newtonsoft) hoặc MessagePack tùy định hướng.
+- KHÔNG dùng `BinaryFormatter` cho code mới (deprecated, CVE security risk).
+
+## 3. PlayerPrefs
+- Chỉ dùng cho flags và preferences nhỏ (ngôn ngữ, settings âm thanh).
+- KHÔNG lưu game state quan trọng trong PlayerPrefs.
+
+## 4. Config Data
+- [TBD: Nơi lưu trữ và cách load static config data]
+
+## 5. Cloud Sync
+- [TBD: Quy tắc đồng bộ dữ liệu lên cloud, nếu có]

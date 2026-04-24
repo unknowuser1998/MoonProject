@@ -1,0 +1,31 @@
+---
+description: "Quy tắc về UI patterns cho MoonProject mobile game."
+globs: "Assets/Scripts/Gameplay/UI/**/*.cs"
+alwaysApply: false
+---
+
+# UI Patterns Rules - MoonProject
+
+## 1. UI Base Classes
+- [TBD: Điền quy tắc kế thừa BaseUI/BasePopup ở đây]
+- [TBD: Đường dẫn chứa prefab UI]
+
+## 2. Panel Lifecycle
+- [TBD: Mô tả vòng đời UI (Init, Show, Hide, Cleanup)]
+
+## 3. Tách biệt UI và Logic
+- UI class chỉ hiển thị data và dispatch user input.
+- Business logic nằm trong Controller/Manager.
+- UI thông báo action qua callback/event, KHÔNG gọi trực tiếp game logic.
+
+## 4. Animation
+- [TBD: Quy tắc sử dụng DOTween, LeanTween hay Animator cho UI]
+
+## 5. Responsive
+- Dùng `SafeArea` component cho notch handling.
+- Anchor properly cho multi-resolution.
+
+## 6. Memory
+- Release sprites/textures khi popup close.
+- Unsubscribe các event trong OnDestroy.
+- Dùng object pooling cho scroll list items nếu cần.

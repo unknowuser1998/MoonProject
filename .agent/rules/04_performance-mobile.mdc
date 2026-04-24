@@ -1,0 +1,125 @@
+---
+description: "Quy tắc tối ưu hiệu năng cho mobile game Unity. Áp dụng cho mọi file script."
+globs: "Assets/Scripts/**/*.cs"
+alwaysApply: false
+---
+
+# Performance Mobile Rules - MoonProject
+
+## 1. Update() Loop
+
+- KHÔNG dùng `Update()` cho logic có thể event-driven
+- Nếu bắt buộc dùng Update(): thêm guard clause ở đầu để early return
+- Ưu tiên: MessageManager event > Coroutine > InvokeRepeating > Update()
+- Countdown/Timer: dùng coroutine hoặc `TimeManager`, KHÔNG poll trong Update()
+
+## 2. Memory / GC Allocation
+
+- KHÔNG `new` object trong Update/LateUpdate/FixedUpdate
+- KHÔNG dùng LINQ trong hot path (Update, per-frame logic)
+- Cache `GetComponent<T>()` kết quả vào field, gọi 1 lần trong Awake/Start
+- Dùng `StringBuilder` cho string concatenation trong loop
+- Dùng `ObjectPool` cho spawn/despawn thay vì Instantiate/Destroy
+
+## 3. Coroutine
+
+- KHÔNG tạo coroutine mỗi frame
+- Cache `WaitForSeconds` instance: `private readonly WaitForSeconds _wait = new WaitForSeconds(1f);`
+- Dùng `WaitForSecondsRealtime` cho UI countdown (không bị ảnh hưởng timeScale)
+- Stop coroutine khi object bị disable: `StopAllCoroutines()` trong `OnDisable()`
+
+## 4. UI Performance
+
+- `Canvas.SetActive(false)` thay vì `CanvasGroup.alpha = 0` khi ẩn hoàn toàn
+- Tránh rebuild layout mỗi frame - batch layout changes
+- Dùng `TextMeshPro` (đã có), KHÔNG dùng `UnityEngine.UI.Text`
+- Object pooling cho scroll view items (project đã có `FancyScrollView`)
+
+## 5. Sprite & Rendering
+
+- Dùng Sprite Atlas cho sprites cùng nhóm
+- Addressables cho asset loading (đã có `AddressableController`)
+- KHÔNG load texture/sprite trong Update()
+- Release Addressable handles khi không dùng
+
+## 6. Serialization
+
+- KHÔNG dùng `BinaryFormatter` cho code mới (deprecated, security risk)
+- Ưu tiên: `JsonUtility` > `MessagePack` (đã có trong GSM-SDK)
+- Giảm save frequency - batch saves, dùng `DataControllerDelaySaver` pattern
+
+## 7. Physics & Collision (nếu dùng)
+
+- KHÔNG dùng `FixedUpdate()` cho non-physics logic
+- Minimize Raycast - cache results, dùng layer mask
+- `Physics2D.queriesHitTriggers = false` nếu không cần
+
+## 8. Firebase / Network
+
+- Batch analytics events, không log mỗi frame
+- Timeout cho network requests
+- Offline-first: save local trước, sync cloud sau (đã có pattern này)
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+public class CountdownTimer : MonoBehaviour
+{
+    [SerializeField] private TextMeshProUGUI txtTime;
+
+    private static readonly WaitForSecondsRealtime Wait1s = new WaitForSecondsRealtime(1f);
+    private Coroutine _countdownCoroutine;
+
+    public void StartCountdown(float seconds)
+    {
+        if (_countdownCoroutine != null)
+            StopCoroutine(_countdownCoroutine);
+        _countdownCoroutine = StartCoroutine(CountdownRoutine(seconds));
+    }
+
+    private IEnumerator CountdownRoutine(float seconds)
+    {
+        while (seconds > 0)
+        {
+            txtTime.text = $"{seconds:F0}";
+            yield return Wait1s;
+            seconds -= 1f;
+        }
+        txtTime.text = "0";
+    }
+
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+        _countdownCoroutine = null;
+    }
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+public class CountdownTimer : MonoBehaviour
+{
+    public Text txtTime; // Dùng legacy Text thay vì TMP
+    private float timeLeft = 60f;
+
+    void Update() // Dùng Update cho countdown
+    {
+        timeLeft -= Time.deltaTime;
+        txtTime.text = "Time: " + timeLeft.ToString("F0"); // String alloc mỗi frame
+        
+        if (timeLeft <= 0)
+        {
+            // Spawn effect mỗi khi hết giờ
+            Instantiate(effectPrefab, transform.position, Quaternion.identity);
+            timeLeft = 60f;
+        }
+
+        // LINQ trong Update
+        var items = FindObjectsOfType<Item>().Where(i => i.IsActive).ToList();
+    }
+}
+```

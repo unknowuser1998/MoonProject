@@ -1,0 +1,125 @@
+---
+description: "Quy tắc debug và logging cho MoonProject. Structured logging, tag convention."
+globs: "Assets/Scripts/**/*.cs"
+alwaysApply: true
+---
+
+# Debug & Logging Standards - MoonProject
+
+## 1. Tag Convention
+
+Mỗi Debug.Log PHẢI có tag format: `[ClassName]` hoặc `[Module.ClassName]`
+
+```csharp
+Debug.Log("[Farm] Planted wheat at pos=(2,3)");
+Debug.LogWarning("[Animal] Feed failed: not enough energy");
+Debug.LogError("[DataController] Save failed: file corrupted");
+```
+
+## 2. Log Levels
+
+| Level | Dùng khi | Ví dụ |
+|-------|----------|-------|
+| `Debug.Log` | Thông tin debug, flow tracking | `[Farm] Growth complete` |
+| `Debug.LogWarning` | Bất thường nhưng recoverable | `[Config] Remote config timeout, using cache` |
+| `Debug.LogError` | Lỗi nghiêm trọng, cần fix | `[Save] Failed to write data.dat` |
+| `Debug.LogException` | Exception cần stack trace | Trong catch blocks |
+
+## 3. Conditional Compilation
+
+Code mới PHẢI wrap debug logs trong `#if DEV_LOGS`:
+
+```csharp
+public class Farm : MonoBehaviour
+{
+    public void TryHarvest()
+    {
+#if DEV_LOGS
+        Debug.Log($"[Farm] TryHarvest at {CellPos}, plantId={state.plantId}");
+#endif
+        // harvest logic...
+    }
+}
+```
+
+### Ngoại lệ - KHÔNG cần wrap:
+- `Debug.LogError` / `Debug.LogException` → luôn log (cần biết lỗi trong production)
+- Analytics events → luôn gửi
+
+## 4. Structured Log Format
+
+Cho thông tin phức tạp, dùng key=value format:
+
+```csharp
+#if DEV_LOGS
+Debug.Log($"[IAP] Purchase complete: pack={packName}, price={price}, currency={currency}");
+Debug.Log($"[Leaderboard] Score updated: userId={userId}, score={newScore}, rank={rank}");
+#endif
+```
+
+## 5. Performance Logging (khuyến nghị)
+
+```csharp
+#if DEV_LOGS
+public static class PerfLog
+{
+    private static readonly Dictionary<string, System.Diagnostics.Stopwatch> _timers = new();
+
+    public static void Begin(string label)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        _timers[label] = sw;
+    }
+
+    public static void End(string label)
+    {
+        if (_timers.TryGetValue(label, out var sw))
+        {
+            sw.Stop();
+            Debug.Log($"[Perf] {label}: {sw.ElapsedMilliseconds}ms");
+            _timers.Remove(label);
+        }
+    }
+}
+
+// Usage:
+PerfLog.Begin("LoadMap");
+// ... load map logic
+PerfLog.End("LoadMap"); // Output: [Perf] LoadMap: 342ms
+#endif
+```
+
+## 6. Migration từ code hiện tại
+
+Code cũ dùng `Debug.Log` trực tiếp → khi touch file:
+1. Thêm tag `[ClassName]`
+2. Wrap trong `#if DEV_LOGS` (trừ LogError/LogException)
+3. KHÔNG migration hàng loạt - chỉ khi sửa file
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+public void OnCompletePurchase(Product product)
+{
+    Debug.LogError($"[IAP] Purchase failed: productId={product.definition.id}"); // Error luôn log
+
+#if DEV_LOGS
+    Debug.Log($"[IAP] Purchase success: id={product.definition.id}, receipt={product.receipt?.Substring(0, 50)}...");
+#endif
+
+    ProcessReward(product);
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+public void OnCompletePurchase(Product product)
+{
+    Debug.Log("purchase complete"); // Không tag, không structured, không conditional
+    Debug.Log(product.receipt); // Log toàn bộ receipt (PII risk, spam)
+    ProcessReward(product);
+}
+```

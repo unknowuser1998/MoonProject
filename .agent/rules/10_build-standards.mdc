@@ -1,0 +1,94 @@
+---
+description: "Quy tắc build và CI/CD cho MoonProject Unity project."
+globs: "Assets/Editor/**/*.cs,*.yml,*.yaml"
+alwaysApply: false
+---
+
+# Build Standards - MoonProject
+
+## 1. Define Symbols
+
+| Symbol | Mục đích | Môi trường |
+|--------|----------|------------|
+| `DEV_LOGS` | Enable debug logging | Dev build |
+| `STAGING` | Staging server endpoints | Staging |
+| `PROD` | Production config | Release |
+| `ENABLE_CHEATS` | Cheat menu (CheatButton) | Dev only |
+
+### Quy tắc:
+- Debug.Log trong production: wrap trong `#if DEV_LOGS`
+- Cheat features: wrap trong `#if ENABLE_CHEATS`
+- KHÔNG dùng `Debug.Log` trực tiếp trong production code mới
+
+## 2. Build Pipeline
+
+### Pre-build checklist
+- [ ] Tất cả scenes trong Build Settings
+- [ ] Addressables build update
+- [ ] Localization tables complete
+- [ ] Define symbols đúng cho target environment
+- [ ] Version number updated (SemVer)
+
+### Android
+| Setting | Dev | Release |
+|---------|-----|---------|
+| IL2CPP | OFF (Mono) | ON |
+| Minify | OFF | Proguard/R8 |
+| Split APKs | OFF | ON (ABB) |
+| Debug symbols | Full | Upload to Play Console |
+
+### iOS
+| Setting | Dev | Release |
+|---------|-----|---------|
+| IL2CPP | ON | ON |
+| Bitcode | OFF | OFF (deprecated) |
+| Strip Engine Code | OFF | ON |
+
+## 3. Version
+
+- Format: `MAJOR.MINOR.PATCH` (SemVer)
+- `bundleVersionCode` (Android) / `buildNumber` (iOS): auto-increment
+- Tag git: `v{version}` cho mỗi release
+
+## 4. CI Pipeline (khuyến nghị)
+
+```
+Commit → Lint/Format Check → Unit Tests → Addressables Build 
+  → Dev Build (Android) → Smoke Test → Release Build
+```
+
+### Bước tối thiểu:
+1. **Format check**: Verify code style
+2. **Unit tests**: `Assets/Tests/EditMode/`
+3. **Build**: Dev APK cho mỗi PR
+4. **Size report**: So sánh build size với previous
+
+## 5. Addressables
+
+- Rebuild Addressables trước mỗi build
+- Group strategy: Default Local, Remote (maps, large assets)
+- Content update: sử dụng `Check for Content Update Restrictions`
+
+---
+
+### Ví dụ ĐÚNG
+
+```csharp
+public void LogGameEvent(string eventName)
+{
+#if DEV_LOGS
+    Debug.Log($"[Analytics] Event: {eventName}");
+#endif
+    FirebaseAnalytics.LogEvent(eventName);
+}
+```
+
+### Ví dụ SAI
+
+```csharp
+public void LogGameEvent(string eventName)
+{
+    Debug.Log($"[Analytics] Event: {eventName}"); // Log trong production
+    FirebaseAnalytics.LogEvent(eventName);
+}
+```

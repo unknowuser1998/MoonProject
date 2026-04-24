@@ -1,0 +1,114 @@
+---
+description: "Quy tắc quản lý assets Unity: texture, audio, prefab, Spine, Addressables."
+globs: "Assets/**/*.png,Assets/**/*.jpg,Assets/**/*.wav,Assets/**/*.mp3,Assets/**/*.ogg,Assets/**/*.prefab"
+alwaysApply: false
+---
+
+# Asset Standards - MoonProject
+
+## 1. Texture Import Settings
+
+### UI Sprites (Prefabs/GameplayUI/)
+| Setting | Giá trị |
+|---------|---------|
+| Texture Type | Sprite (2D and UI) |
+| Max Size | 1024 (512 nếu < 256x256 pixel gốc) |
+| Compression | ASTC 6x6 (Android), ASTC 4x4 (iOS) |
+| Generate Mip Maps | OFF (UI không cần) |
+| Read/Write | OFF |
+| Sprite Atlas | Gom vào atlas theo feature |
+
+### Gameplay Sprites (SpineSkeleton/, Prefabs/Gameplay/)
+| Setting | Giá trị |
+|---------|---------|
+| Max Size | 2048 |
+| Compression | ASTC 6x6 |
+| Generate Mip Maps | OFF (2D game) |
+| Read/Write | OFF |
+
+### Spine Atlas textures
+- KHÔNG đổi import settings của Spine atlas - Spine runtime quản lý
+- Đảm bảo atlas packing efficient (< 2048x2048 per atlas)
+
+## 2. Audio Import Settings
+
+### SFX (ngắn, < 5s)
+| Setting | Giá trị |
+|---------|---------|
+| Load Type | Decompress On Load |
+| Compression | Vorbis, Quality 70% |
+| Sample Rate | 22050 Hz |
+| Channels | Mono (force) |
+
+### BGM (dài, > 5s)
+| Setting | Giá trị |
+|---------|---------|
+| Load Type | Streaming |
+| Compression | Vorbis, Quality 50% |
+| Sample Rate | 44100 Hz |
+| Channels | Stereo |
+
+## 3. Prefab Organization
+
+```
+Prefabs/
+├── Gameplay/
+│   ├── Animals/       → Animal prefabs (con vật)
+│   ├── Buildings/     → Building prefabs (nhà)
+│   ├── Decorations/   → Decoration prefabs (trang trí)
+│   ├── Trees/         → Tree prefabs (cây)
+│   └── Effects/       → VFX prefabs
+├── GameplayUI/
+│   ├── Shop/          → Shop panels
+│   ├── CardCollections/ → Card collection popups
+│   ├── LeaderBoard/   → Leaderboard panels
+│   └── {Feature}/     → Popup/panel theo feature
+└── Common/
+    └── ItemProp.prefab → Shared item prop
+```
+
+## 4. Addressables
+
+- Scenes: tất cả MAP_* scenes qua Addressables
+- Large assets: sprite sheets > 1MB nên qua Addressables
+- Release handle: `Addressables.Release(handle)` khi không dùng
+- Group theo load pattern: "AlwaysLoaded", "PerMap", "OnDemand"
+
+## 5. Naming Convention cho Assets
+
+| Loại | Pattern | Ví dụ |
+|------|---------|-------|
+| Sprite | `{category}_{name}_{variant}` | `ui_btn_close`, `animal_chicken_idle` |
+| Audio SFX | `sfx_{action}` | `sfx_harvest`, `sfx_click`, `sfx_coin` |
+| Audio BGM | `bgm_{scene}` | `bgm_map01`, `bgm_lobby` |
+| Prefab | PascalCase theo class | `Farm.prefab`, `AnimalChicken.prefab` |
+| Material | `mat_{object}_{variant}` | `mat_water_transparent` |
+| Animation | `anim_{object}_{state}` | `anim_character_walk` |
+
+## 6. KHÔNG ĐƯỢC
+
+- KHÔNG commit texture > 4096x4096
+- KHÔNG để Read/Write enabled trừ khi runtime modify
+- KHÔNG dùng uncompressed audio
+- KHÔNG để orphan assets (không referenced từ đâu)
+- KHÔNG duplicate sprites - dùng Sprite Atlas
+
+---
+
+### Ví dụ ĐÚNG
+```
+Assets/Prefabs/GameplayUI/DailyReward/
+├── DailyRewardPanel.prefab      → Tên trùng class
+├── DailyRewardElement.prefab
+└── Materials/
+    └── mat_daily_glow.mat
+```
+
+### Ví dụ SAI
+```
+Assets/Prefabs/GameplayUI/
+├── Panel1.prefab                → Tên không rõ nghĩa
+├── new_popup (1).prefab         → Duplicate, tên xấu
+├── DailyReward_BACKUP.prefab   → Backup trong repo
+└── test.prefab                  → Test file trong production
+```

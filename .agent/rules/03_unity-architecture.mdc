@@ -1,0 +1,37 @@
+---
+description: "Quy tắc kiến trúc Unity cho MoonProject. Áp dụng khi tạo mới hoặc refactor class trong Scripts/."
+globs: "Assets/Scripts/**/*.cs"
+alwaysApply: true
+---
+
+# Unity Architecture Rules - MoonProject
+
+## 1. Nguyên tắc Singleton
+- Hạn chế sử dụng Singleton tràn lan. Chỉ dùng cho system-level service.
+- [TBD: Điền quy tắc quản lý dependency (DI/Service Locator/Singleton) của dự án vào đây]
+
+## 2. Giao tiếp giữa các thành phần (Message/Event)
+- [TBD: Điền quy tắc sử dụng Message Bus/Events/UniRx vào đây]
+- Tránh tham chiếu trực tiếp (direct reference) giữa các hệ thống không liên quan.
+
+## 3. Data Architecture
+- [TBD: Cấu trúc wrapper/lưu trữ Data & Config của dự án]
+- Tách biệt rạch ròi giữa Static Config (đọc) và Runtime Data (ghi).
+
+## 4. UI Architecture
+- [TBD: Kiến trúc UI (ví dụ MVC, MVP, MVVM)]
+- UI logic phải tách khỏi business logic. Không để UI trực tiếp thay đổi game state.
+
+## 5. Namespace bắt buộc
+- Code mới PHẢI có namespace.
+- Format: `MoonProject.{Module}` (ví dụ: `MoonProject.Gameplay`, `MoonProject.UI`, `MoonProject.Data`)
+
+## 6. Dependency Direction
+```
+UI Layer → Gameplay Layer → Data Layer → Config Layer
+```
+- UI KHÔNG được gọi trực tiếp Data Layer - qua Gameplay/Controller
+- Service Layer KHÔNG được biết về UI
+
+## 7. Scene Rules
+- [TBD: Quy chuẩn load scene, sử dụng Addressables hay SceneManager]

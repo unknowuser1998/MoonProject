@@ -1,0 +1,92 @@
+---
+description: "Hướng dẫn sử dụng Unity MCP skills để thao tác trực tiếp với Unity Editor. Áp dụng khi cần tạo/sửa/xóa GameObject, asset, scene, hoặc debug."
+globs: ""
+alwaysApply: true
+---
+
+# MCP Workflow Rules - MoonProject
+
+## 1. Khi nào dùng MCP Skills
+
+| Tình huống | MCP Skills phù hợp |
+|------------|---------------------|
+| Tạo/sửa/xóa GameObject | `gameobject-create`, `gameobject-modify`, `gameobject-destroy` |
+| Thêm/sửa Component | `gameobject-component-add`, `gameobject-component-modify`, `gameobject-component-get` |
+| Tìm/inspect GameObject | `gameobject-find`, `gameobject-component-list-all` |
+| Tìm/sửa Asset | `assets-find`, `assets-get-data`, `assets-modify`, `assets-copy`, `assets-move` |
+| Tạo Prefab | `assets-prefab-create`, `assets-prefab-open`, `assets-prefab-save`, `assets-prefab-close` |
+| Quản lý Scene | `scene-list-opened`, `scene-open`, `scene-save`, `scene-get-data` |
+| Tạo/sửa C# script | `script-read`, `script-update-or-create`, `script-delete` |
+| Debug/Check logs | `console-get-logs`, `console-clear-logs` |
+| Capture trạng thái | `screenshot-game-view`, `screenshot-scene-view`, `screenshot-camera` |
+| Kiểm tra Editor | `editor-application-get-state`, `editor-application-set-state` |
+| Chạy test | `tests-run` |
+| Quản lý Package | `package-list`, `package-search`, `package-add`, `package-remove` |
+| Tạo Material | `assets-material-create`, `assets-shader-list-all` |
+| Chạy code C# | `script-execute`, `reflection-method-find`, `reflection-method-call` |
+
+## 2. CLI Setup (Windows PowerShell workaround)
+
+PowerShell execution policy thường block `.ps1` scripts. Dùng `node` trực tiếp:
+
+```
+node "C:\Users\Admin\AppData\Roaming\npm\node_modules\unity-mcp-cli\bin\unity-mcp-cli.js" run-tool {tool-name} --input-file {json-file}
+```
+
+### Workflow chuẩn:
+1. Tạo temp JSON file với input parameters
+2. Gọi MCP CLI qua `node` trực tiếp
+3. Parse JSON response
+4. Xóa temp file sau khi dùng
+
+### Yêu cầu:
+- Unity Editor phải đang chạy (MCP server port 25879)
+- `unity-mcp-cli` phải được cài global: `npm install -g unity-mcp-cli`
+
+## 3. Quy tắc sử dụng
+
+### TRƯỚC KHI thao tác MCP:
+- Dùng `assets-find` để tìm asset trước khi modify/delete
+- Dùng `gameobject-find` để tìm GameObject trước khi modify/destroy
+- Dùng `scene-list-opened` để kiểm tra scene nào đang mở
+- Dùng `script-read` để đọc script trước khi update
+
+### SAU KHI thao tác MCP:
+- Dùng `assets-refresh` nếu đã tạo/sửa file ngoài Unity API
+- Dùng `scene-save` nếu đã thay đổi scene objects
+- Dùng `console-get-logs` để kiểm tra errors sau khi tạo/sửa script
+
+### An toàn:
+- KHÔNG dùng `gameobject-destroy` hoặc `assets-delete` trên core objects mà không hỏi user
+- KHÔNG dùng `script-update-or-create` để sửa files trong danh sách cấm (xem `03_unity-architecture`)
+- KHÔNG dùng `editor-application-set-state` để start Play mode mà không hỏi user
+- Luôn `scene-save` trước khi mở scene khác (tránh mất thay đổi)
+
+## 4. Kết hợp MCP với Commands
+
+| Command | MCP Skills nên dùng |
+|---------|---------------------|
+| `/ask` | `script-read`, `gameobject-find`, `assets-find` để điều tra |
+| `/bug-analyze` | `console-get-logs`, `screenshot-game-view`, `editor-application-get-state` |
+| `/code-analyze` | `script-read`, `assets-find`, `gameobject-component-get` |
+| `/extract_pure_logic` | `script-read` → `script-update-or-create` → `tests-run` |
+| `/optimize_update_loop` | `script-read` (tìm Update) → `script-update-or-create` |
+| `/refactor_singletons` | `script-read` → `assets-find` (tìm SO) → `script-update-or-create` |
+
+## 5. Prefab Workflow
+
+Khi cần sửa prefab:
+1. `assets-find` — tìm prefab
+2. `assets-prefab-open` — mở prefab edit mode
+3. `gameobject-find` / `gameobject-modify` / `gameobject-component-*` — sửa nội dung
+4. `assets-prefab-save` — save changes
+5. `assets-prefab-close` — thoát edit mode
+
+## 6. Script Workflow
+
+Khi cần tạo/sửa C# script:
+1. `script-read` — đọc script hiện tại (nếu update)
+2. `script-update-or-create` — tạo/sửa script (tự AssetDatabase.Refresh)
+3. Chờ compilation — tool sẽ báo kết quả compilation
+4. `console-get-logs` — check compilation errors nếu cần
+5. `tests-run` — chạy test liên quan (nếu có)
