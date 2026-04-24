@@ -1,0 +1,22 @@
+---
+description: "Quy tắc tự động quản lý Git (Commit & Push) dành cho AI Agent sau khi hoàn thành một chức năng."
+globs: ""
+alwaysApply: true
+---
+
+# Agent Git Workflow - MoonProject
+
+## 1. Tự động Commit & Push
+AI Agent CẦN tự động thực hiện quy trình Git (add, commit, push) mỗi khi một tính năng (feature) hoặc một lỗi (bug fix) đã được hoàn thiện và xác nhận hoạt động tốt bởi user.
+
+## 2. Quy trình thực hiện
+Mỗi khi user xác nhận code hoạt động đúng hoặc khi Agent hoàn tất một task trọn vẹn mà không có lỗi:
+1. **Kiểm tra status**: Sử dụng `git status` để xem các file thay đổi.
+2. **Git Add**: Lệnh `git add .` (hoặc add cụ thể những file liên quan đến tính năng vừa làm).
+3. **Git Commit**: Lệnh `git commit -m "type(scope): message"`. Đảm bảo tuân thủ chuẩn Conventional Commits trong `12_git-commit-standards.mdc`.
+4. **Git Push**: Lệnh `git push origin HEAD` để đẩy code trực tiếp lên remote.
+
+## 3. Lưu ý an toàn
+- **KHÔNG** auto-commit/push nếu code chưa được test qua hoặc user chưa xác nhận tính năng đã chạy đúng như ý.
+- Nếu có lỗi merge conflict hoặc authentication khi push, DỪNG LẠI và thông báo ngay cho user để giải quyết.
+- Chỉ commit những file source code, settings, assets hợp lệ. Đảm bảo `.gitignore` đang hoạt động đúng.

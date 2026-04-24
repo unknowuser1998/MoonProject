@@ -24,6 +24,9 @@ public class MoonRoverController : MonoBehaviour
 
     void Start()
     {
+        if (sphereRigidbody == null) 
+            sphereRigidbody = GetComponent<Rigidbody>();
+
         // Detach visual body so it can rotate independently of the sphere's rolling
         if (visualBody != null)
         {
@@ -41,9 +44,18 @@ public class MoonRoverController : MonoBehaviour
 
     void Update()
     {
-        // Get Input (W/S for move, A/D for turn)
-        moveInput = Input.GetAxisRaw("Vertical");
-        turnInput = Input.GetAxisRaw("Horizontal");
+        // Get Input (W/S for move, A/D for turn) using New Input System
+        moveInput = 0f;
+        turnInput = 0f;
+        
+        if (UnityEngine.InputSystem.Keyboard.current != null)
+        {
+            if (UnityEngine.InputSystem.Keyboard.current.wKey.isPressed || UnityEngine.InputSystem.Keyboard.current.upArrowKey.isPressed) moveInput += 1f;
+            if (UnityEngine.InputSystem.Keyboard.current.sKey.isPressed || UnityEngine.InputSystem.Keyboard.current.downArrowKey.isPressed) moveInput -= 1f;
+            
+            if (UnityEngine.InputSystem.Keyboard.current.dKey.isPressed || UnityEngine.InputSystem.Keyboard.current.rightArrowKey.isPressed) turnInput += 1f;
+            if (UnityEngine.InputSystem.Keyboard.current.aKey.isPressed || UnityEngine.InputSystem.Keyboard.current.leftArrowKey.isPressed) turnInput -= 1f;
+        }
 
         // Rotate the visual body steering smoothly based on input
         if (visualBody != null)
