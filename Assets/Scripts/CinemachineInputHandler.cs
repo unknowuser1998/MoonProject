@@ -16,11 +16,11 @@ public class CinemachineInputHandler : MonoBehaviour
 
         if (axisName == "Mouse X")
         {
-            return UnityEngine.InputSystem.Mouse.current.delta.x.ReadValue() * 0.05f; // Scale down raw delta
+            return UnityEngine.InputSystem.Mouse.current.delta.x.ReadValue() * 0.02f; // Scale down raw delta further for lower sensitivity
         }
         else if (axisName == "Mouse Y")
         {
-            return UnityEngine.InputSystem.Mouse.current.delta.y.ReadValue() * 0.05f; // Scale down raw delta
+            return UnityEngine.InputSystem.Mouse.current.delta.y.ReadValue() * 0.02f; // Scale down raw delta further
         }
 
         return 0f;

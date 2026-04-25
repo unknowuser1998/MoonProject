@@ -59,12 +59,30 @@ public class MoonRoverController : MonoBehaviour
             if (UnityEngine.InputSystem.Keyboard.current.aKey.isPressed || UnityEngine.InputSystem.Keyboard.current.leftArrowKey.isPressed) turnInput -= 1f;
         }
 
-        // Rotate the visual body steering smoothly based on input
-        if (visualBody != null)
+        if (visualBody != null && sphereRigidbody != null)
         {
+            // Rotate the visual body steering smoothly based on input
             visualBody.Rotate(0f, turnInput * turnSpeed * Time.deltaTime, 0f, Space.Self);
+            
+            // 1. Follow the sphere's interpolated position directly
+            // We MUST use sphereRigidbody.transform.position to get the interpolated position!
+            // Using sphereRigidbody.position gets the raw physics position, which causes severe jitter.
+            visualBody.position = sphereRigidbody.transform.position;
+
+            // 2. Smoothly transition the normal to the ground normal
+            currentNormal = Vector3.Lerp(currentNormal, targetNormal, Time.deltaTime * alignSpeed);
+
+            // 3. Align the visual body to the current normal while maintaining its steering direction
+            Vector3 projectedForward = Vector3.ProjectOnPlane(visualBody.forward, currentNormal).normalized;
+            if (projectedForward != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(projectedForward, currentNormal);
+                visualBody.rotation = Quaternion.Slerp(visualBody.rotation, targetRotation, Time.deltaTime * alignSpeed);
+            }
         }
     }
+
+    private Vector3 targetNormal = Vector3.up;
 
     void FixedUpdate()
     {
@@ -96,35 +114,17 @@ public class MoonRoverController : MonoBehaviour
         Vector3 extraGravity = Physics.gravity * (gravityMultiplier - 1f);
         sphereRigidbody.AddForce(extraGravity, ForceMode.Acceleration);
 
-        // Alignment & Suspension Tracking
-        AlignAndFollow();
-    }
-
-    private void AlignAndFollow()
-    {
-        // 1. Follow the sphere's position
-        visualBody.position = Vector3.Lerp(visualBody.position, sphereRigidbody.position, Time.fixedDeltaTime * 20f);
-
-        // 2. Raycast to find the ground normal for alignment
+        // Raycast to find the ground normal for alignment
         RaycastHit hit;
         // Shoot ray downwards from the sphere
         if (Physics.Raycast(sphereRigidbody.position, Vector3.down, out hit, raycastDistance, groundLayer))
         {
-            // Smoothly transition the normal to the ground normal
-            currentNormal = Vector3.Lerp(currentNormal, hit.normal, Time.fixedDeltaTime * alignSpeed);
+            targetNormal = hit.normal;
         }
         else
         {
             // If floating/falling, slowly return to upright position
-            currentNormal = Vector3.Lerp(currentNormal, Vector3.up, Time.fixedDeltaTime * alignSpeed * 0.5f);
-        }
-
-        // 3. Align the visual body to the current normal while maintaining its steering direction
-        Vector3 projectedForward = Vector3.ProjectOnPlane(visualBody.forward, currentNormal).normalized;
-        if (projectedForward != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(projectedForward, currentNormal);
-            visualBody.rotation = Quaternion.Slerp(visualBody.rotation, targetRotation, Time.fixedDeltaTime * alignSpeed);
+            targetNormal = Vector3.up;
         }
     }
 }
