@@ -10,6 +10,8 @@ public class MoonRoverController : MonoBehaviour
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 15f;
+    [SerializeField] private float maxSpeed = 10f;
+    [SerializeField] private float deceleration = 5f;
     [SerializeField] private float turnSpeed = 90f;
     [SerializeField] private float gravityMultiplier = 0.5f; // Less than 1 for low gravity feel
 
@@ -72,6 +74,22 @@ public class MoonRoverController : MonoBehaviour
         // Force is applied in the direction the Visual Body is facing
         Vector3 forwardForce = visualBody.forward * moveInput * moveSpeed;
         sphereRigidbody.AddForce(forwardForce, ForceMode.Acceleration);
+
+        // Apply deceleration (braking) when no input is provided
+        if (Mathf.Abs(moveInput) < 0.1f)
+        {
+            Vector3 flatVel = new Vector3(sphereRigidbody.velocity.x, 0f, sphereRigidbody.velocity.z);
+            sphereRigidbody.AddForce(-flatVel * deceleration, ForceMode.Acceleration);
+        }
+
+        // Cap the maximum horizontal speed
+        Vector3 currentVel = sphereRigidbody.velocity;
+        Vector3 flatVelocity = new Vector3(currentVel.x, 0f, currentVel.z);
+        if (flatVelocity.magnitude > maxSpeed)
+        {
+            Vector3 limitedVel = flatVelocity.normalized * maxSpeed;
+            sphereRigidbody.velocity = new Vector3(limitedVel.x, currentVel.y, limitedVel.z);
+        }
 
         // Custom Moon Gravity (Base gravity * multiplier)
         // Unity's default gravity is -9.81. We add extra force to adjust the feel.
