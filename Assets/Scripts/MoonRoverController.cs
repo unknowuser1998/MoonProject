@@ -78,17 +78,17 @@ public class MoonRoverController : MonoBehaviour
         // Apply deceleration (braking) when no input is provided
         if (Mathf.Abs(moveInput) < 0.1f)
         {
-            Vector3 flatVel = new Vector3(sphereRigidbody.velocity.x, 0f, sphereRigidbody.velocity.z);
+            Vector3 flatVel = new Vector3(sphereRigidbody.linearVelocity.x, 0f, sphereRigidbody.linearVelocity.z);
             sphereRigidbody.AddForce(-flatVel * deceleration, ForceMode.Acceleration);
         }
 
         // Cap the maximum horizontal speed
-        Vector3 currentVel = sphereRigidbody.velocity;
+        Vector3 currentVel = sphereRigidbody.linearVelocity;
         Vector3 flatVelocity = new Vector3(currentVel.x, 0f, currentVel.z);
         if (flatVelocity.magnitude > maxSpeed)
         {
             Vector3 limitedVel = flatVelocity.normalized * maxSpeed;
-            sphereRigidbody.velocity = new Vector3(limitedVel.x, currentVel.y, limitedVel.z);
+            sphereRigidbody.linearVelocity = new Vector3(limitedVel.x, currentVel.y, limitedVel.z);
         }
 
         // Custom Moon Gravity (Base gravity * multiplier)
