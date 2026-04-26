@@ -26,6 +26,10 @@ public class MoonRoverController : MonoBehaviour
 
     void Start()
     {
+        // Lock and hide cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         if (sphereRigidbody == null) 
             sphereRigidbody = GetComponent<Rigidbody>();
 
