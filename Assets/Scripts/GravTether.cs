@@ -14,7 +14,6 @@ public class GravTether : MonoBehaviour
     [Header("Aiming Settings")]
     public float maxAimDistance = 20f;
     public float maxTetherDistance = 25f;
-    public float aimSphereRadius = 2.5f;
     [Tooltip("Layers that can be tethered. Ensure relics have Rigidbodies.")]
     public LayerMask tetherableLayer = ~0;
     public Color highlightColor = new Color(0f, 1f, 1f, 1f); // Cyan highlight
@@ -28,8 +27,16 @@ public class GravTether : MonoBehaviour
     public float noiseSpeed = 5f;
 
     [Header("Physics Settings")]
-    public float springForce = 50f;
-    public float springDamper = 10f;
+    [Tooltip("Strength of the tether pull. Increase this if heavy objects can't be lifted.")]
+    public float springForce = 200f;
+    [Tooltip("Damping to prevent bouncing (Critical damping is ~30 for spring 200)")]
+    public float springDamper = 30f;
+    [Tooltip("Maximum force the tether can apply. Caps out to simulate struggling with heavy weights.")]
+    public float maxTetherForce = 500f;
+    [Tooltip("Multiplier for upward force relative to weight. 1.0 = barely holds it, >1.0 = lifts slowly.")]
+    public float maxUpLiftMultiplier = 1.2f;
+    [Tooltip("Maximum height the tether can lift an object above the rover.")]
+    public float maxLiftHeight = 4.0f;
     public float winchScrollSpeed = 2f;
     public float minWinchLength = 2f;
     public float maxWinchLength = 15f;
@@ -41,10 +48,14 @@ public class GravTether : MonoBehaviour
     public LayerMask groundLayer = 1; // Default to 1 (Default layer)
 
     private LineRenderer lineRenderer;
-    private SpringJoint currentJoint;
     private Rigidbody tetheredBody;
     private Rigidbody roverRigidbody;
     private Camera mainCamera;
+    
+    private float currentWinchDistance;
+    private Vector3 currentTargetPosition;
+    private Vector3 smoothedTargetPosition;
+    private Vector3 targetVelocity;
 
     private bool isTethering = false;
     
@@ -95,8 +106,18 @@ public class GravTether : MonoBehaviour
             }
             else
             {
-                UpdateTetherLogic();
                 HandleWinchInput();
+                // Target position follows the camera's gaze at the specified winch distance
+                currentTargetPosition = ray.GetPoint(currentWinchDistance);
+                
+                // Prevent lifting too high into the sky
+                float maxHeight = transform.position.y + maxLiftHeight;
+                if (currentTargetPosition.y > maxHeight)
+                {
+                    currentTargetPosition.y = maxHeight;
+                }
+
+                UpdateTetherLogic();
                 lookTarget = tetheredBody.position;
             }
         }
@@ -125,10 +146,43 @@ public class GravTether : MonoBehaviour
         UpdateDragVFX();
     }
 
+    private void FixedUpdate()
+    {
+        if (isTethering && tetheredBody != null)
+        {
+            // Smooth the target position to eliminate jitter from camera movement
+            smoothedTargetPosition = Vector3.SmoothDamp(smoothedTargetPosition, currentTargetPosition, ref targetVelocity, 0.1f);
+
+            // Custom spring physics (PD Controller) to pull the relic
+            Vector3 error = smoothedTargetPosition - tetheredBody.position;
+            Vector3 errorDerivative = targetVelocity - tetheredBody.linearVelocity;
+            
+            Vector3 force = error * springForce + errorDerivative * springDamper;
+            
+            // Restrict upward force to simulate heavy weight and prevent flying
+            float weight = tetheredBody.mass * Mathf.Abs(Physics.gravity.y);
+            float maxUpForce = weight * maxUpLiftMultiplier;
+            if (force.y > maxUpForce)
+            {
+                force.y = maxUpForce;
+            }
+
+            // Limit the maximum force to simulate tether strain on heavy objects
+            if (force.magnitude > maxTetherForce)
+            {
+                force = force.normalized * maxTetherForce;
+            }
+            
+            // Use ForceMode.Force so MASS matters!
+            tetheredBody.AddForce(force, ForceMode.Force);
+        }
+    }
+
     private void TryStartTether(Ray ray, ref Vector3 lookTarget)
     {
-        // Try SphereCast for generous aiming
-        if (Physics.SphereCast(ray, aimSphereRadius, out RaycastHit hit, maxAimDistance, tetherableLayer))
+        // Use pure Raycast for 100% precision instead of SphereCast
+        // This means the crosshair MUST exactly touch the relic's collider
+        if (Physics.Raycast(ray, out RaycastHit hit, maxAimDistance, tetherableLayer))
         {
             Rigidbody targetRb = hit.collider.attachedRigidbody;
             if (targetRb != null && targetRb != roverRigidbody)
@@ -136,47 +190,40 @@ public class GravTether : MonoBehaviour
                 // Start tethering
                 isTethering = true;
                 tetheredBody = targetRb;
-
-                // Create SpringJoint on the Rover
-                currentJoint = gameObject.AddComponent<SpringJoint>();
-                currentJoint.connectedBody = tetheredBody;
                 
-                // Keep the anchor at the center of the sphere so rolling doesn't yank the relic around
-                currentJoint.autoConfigureConnectedAnchor = false;
-                currentJoint.anchor = Vector3.zero; 
-                currentJoint.connectedAnchor = Vector3.zero;
+                // Force interpolation to fix physics jitter when dragging
+                tetheredBody.interpolation = RigidbodyInterpolation.Interpolate;
 
-                // Configure physics
-                currentJoint.spring = springForce;
-                currentJoint.damper = springDamper;
+                // Initial length based on current distance to the object
+                currentWinchDistance = Vector3.Distance(mainCamera.transform.position, tetheredBody.position);
+                currentWinchDistance = Mathf.Clamp(currentWinchDistance, minWinchLength, maxWinchLength);
                 
-                // Initial length based on current distance
-                float initialDist = Vector3.Distance(transform.position, tetheredBody.position);
-                currentJoint.maxDistance = Mathf.Clamp(initialDist, minWinchLength, maxWinchLength);
-                currentJoint.minDistance = Mathf.Max(0f, currentJoint.maxDistance - 2f);
+                currentTargetPosition = tetheredBody.position;
+                smoothedTargetPosition = tetheredBody.position;
 
                 lineRenderer.enabled = true;
                 lookTarget = tetheredBody.position;
                 
                 // Keep it highlighted while tethered
                 ApplyHighlight(tetheredBody.GetComponentInChildren<Renderer>());
+                
+                return; // target found
             }
         }
-        else
+
+        // Just looking around, show aiming laser
+        if (Physics.Raycast(ray, out RaycastHit laserHit, maxAimDistance))
         {
-            // Just looking around, show aiming laser
-            if (Physics.Raycast(ray, out hit, maxAimDistance))
-            {
-                lookTarget = hit.point;
-            }
-            UpdateAimingLaser(lookTarget);
-            RemoveHighlight();
+            lookTarget = laserHit.point;
         }
+        UpdateAimingLaser(lookTarget);
+        RemoveHighlight();
     }
 
     private void HandleHighlighting(Ray ray, ref Vector3 lookTarget)
     {
-        if (Physics.SphereCast(ray, aimSphereRadius, out RaycastHit hit, maxAimDistance, tetherableLayer))
+        // Use pure Raycast for precise highlighting
+        if (Physics.Raycast(ray, out RaycastHit hit, maxAimDistance, tetherableLayer))
         {
             Rigidbody targetRb = hit.collider.attachedRigidbody;
             if (targetRb != null && targetRb != roverRigidbody)
@@ -220,19 +267,14 @@ public class GravTether : MonoBehaviour
 
     private void HandleWinchInput()
     {
-        if (currentJoint == null) return;
-        
         float scrollAmount = Mouse.current.scroll.ReadValue().y;
         if (scrollAmount != 0)
         {
-            // scroll.y is usually a large number (like 120 or -120), so we normalize the sign
             float scrollDir = Mathf.Sign(scrollAmount);
             // Scrolling up (positive) = Reel IN (reduce distance)
             // Scrolling down (negative) = Reel OUT (increase distance)
-            float newDistance = currentJoint.maxDistance - (scrollDir * winchScrollSpeed);
-            
-            currentJoint.maxDistance = Mathf.Clamp(newDistance, minWinchLength, maxWinchLength);
-            currentJoint.minDistance = Mathf.Max(0f, currentJoint.maxDistance - 2f);
+            currentWinchDistance -= scrollDir * winchScrollSpeed;
+            currentWinchDistance = Mathf.Clamp(currentWinchDistance, minWinchLength, maxWinchLength);
         }
     }
 
@@ -279,7 +321,7 @@ public class GravTether : MonoBehaviour
 
     private void UpdateTetherLogic()
     {
-        if (tetheredBody == null || currentJoint == null)
+        if (tetheredBody == null)
         {
             BreakTether();
             return;
@@ -353,16 +395,26 @@ public class GravTether : MonoBehaviour
         isTethering = false;
         tetheredBody = null;
         RemoveHighlight();
-        
-        if (currentJoint != null)
-        {
-            Destroy(currentJoint);
-            currentJoint = null;
-        }
 
         if (lineRenderer != null)
         {
             lineRenderer.enabled = false;
         }
+    }
+
+    private void OnGUI()
+    {
+        if (mainCamera == null) return;
+        
+        // Crosshair size expands slightly when a target is found
+        float size = currentlyHighlightedRenderer != null ? 12f : 6f;
+        float posX = mainCamera.pixelWidth / 2f - size / 2f;
+        float posY = mainCamera.pixelHeight / 2f - size / 2f;
+
+        // Color changes to highlightColor (Cyan) if target found, otherwise semi-transparent white
+        GUI.color = currentlyHighlightedRenderer != null ? highlightColor : new Color(1f, 1f, 1f, 0.5f);
+        
+        // Draw a simple square crosshair
+        GUI.DrawTexture(new Rect(posX, posY, size, size), Texture2D.whiteTexture);
     }
 }
